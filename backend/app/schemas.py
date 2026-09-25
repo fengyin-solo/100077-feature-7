@@ -28,6 +28,24 @@ class EntryPayload(BaseModel):
     remark: str | None = None
 
 
+class ImportPayload(BaseModel):
+    """批量导入时提交的模板文件内容（固定模板的 CSV 文本）。"""
+
+    filename: str | None = None
+    content: str = ""
+
+
+class ImportResult(BaseModel):
+    """批量导入结果：成功条数、逐条失败原因与已落库的记录。"""
+
+    ok: bool
+    message: str
+    total: int = 0
+    imported: int = 0
+    failed: int = 0
+    failures: list[dict[str, Any]] = Field(default_factory=list)
+    items: list[dict[str, Any]] = Field(default_factory=list)
+
 
 class RoadEntry(BaseModel):
     """道路设施明细结构。"""
