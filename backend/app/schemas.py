@@ -28,6 +28,32 @@ class EntryPayload(BaseModel):
     remark: str | None = None
 
 
+class ImportPayload(BaseModel):
+    """批量导入时提交的模板文件内容（CSV 文本）。"""
+
+    content: str = ""
+    source: str | None = None
+
+
+class ImportFailure(BaseModel):
+    """单条导入失败的原因说明。"""
+
+    line: int
+    key: str
+    reason: str
+
+
+class ImportResult(BaseModel):
+    """批量导入结果：成功明细、失败明细与是否重复导入。"""
+
+    ok: bool
+    message: str
+    batch: str | None = None
+    imported: list[dict[str, Any]] = Field(default_factory=list)
+    failed: list[ImportFailure] = Field(default_factory=list)
+    duplicated: bool = False
+
+
 
 class RoadEntry(BaseModel):
     """道路设施明细结构。"""

@@ -5,8 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.schemas import ActionResult, EntryPayload, PageResult
-from app.services.disease import DiseaseService
+from app.schemas import ActionResult, EntryPayload, ImportPayload, ImportResult, PageResult
+from app.services.disease import ALLOWED_DISEASE_TYPES, IMPORT_FIELDS, DiseaseService
 
 router = APIRouter(prefix="/api/disease", tags=["病害登记"])
 
@@ -28,6 +28,35 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/import/template")
+def import_template() -> dict[str, Any]:
+    """下载批量导入的固定模板：表头、允许的病害类型清单一并返回，方便页面提示。"""
+    return {
+        "filename": "病害记录导入模板.csv",
+        "content": service.import_template(),
+        "fields": IMPORT_FIELDS,
+        "allowed_types": ALLOWED_DISEASE_TYPES,
+    }
+
+
+@router.post("/import", response_model=ImportResult)
+def import_entries(payload: ImportPayload) -> ImportResult:
+    """按固定模板批量导入病害记录。
+
+    逐行校验病害编号、所在设施、病害类型；有问题的行不落库并逐条说明原因，
+    其余行正常登记；同一份文件重复导入不会生成两份记录。
+    """
+    result = service.import_entries(payload.content, source=payload.source)
+    return ImportResult(**result)
+
+
+@router.get("/stats")
+def stats_by_facility() -> dict[str, Any]:
+    """按所在设施统计病害记录数量，导入完成后台账数量跟着更新。"""
+    items = service.stats_by_facility()
+    return {"items": items, "total": sum(int(item["数量"]) for item in items)}
 
 
 @router.get("/{entry_id}", response_model=dict)
